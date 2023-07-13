@@ -102,7 +102,7 @@ class Server {
 }
 
 //the actual binary will parse command line arguments and call these functions accordingly.
-class ActualInterface {
+class DriverClass {
   var allUsers = <User>[];
   var allServers = <Server>[];
   void registerUser(String username) {
@@ -204,7 +204,7 @@ void main(List<String> arguments) {
   final results = parser.parse(arguments);
   final command = results.command?.name;
 
-  final actualInterface = ActualInterface();
+  final actualInterface = DriverClass();
 
   actualInterface.registerUser("hello");
   actualInterface.loginUser("hello");
