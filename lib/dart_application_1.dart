@@ -1,3 +1,13 @@
+import 'package:args/args.dart';
+import 'package:sembast/sembast.dart';
+import 'package:sembast/sembast_io.dart';
+import 'dart:async';
+
+Future<Database> setupDatabase() async {
+  var dbPath = r'lib\models\hello.db';
+  var database = await databaseFactoryIo.openDatabase(dbPath);
+  return database;
+}
 
 //custom exceptions, can be expanded upon
 class UserExistsException implements Exception {
@@ -29,9 +39,28 @@ class ServerNotFoundException implements Exception {
 
 class User {
   final String username;
-  var loggedIn = false;
-  User(this.username);
+  bool loggedIn;
+
+  User({
+    required this.username,
+    this.loggedIn = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'username': username,
+      'loggedIn': loggedIn,
+    };
+  }
+
+  static User fromMap(Map<String, dynamic> map) {
+    return User(
+      username: map['username'],
+      loggedIn: map['loggedIn'],
+    );
+  }
 }
+
 //future implementation
 // class Moderator implements User {
 
@@ -104,12 +133,21 @@ class Server {
 class ActualInterface {
   var allUsers = <User>[];
   var allServers = <Server>[];
-  void registerUser(String username) {
-    var userNames = allUsers.map((user) => user.username).toList();
-    if (userNames.contains(username)) {
+  Future<void> registerUser(String username) async {
+    var database = await setupDatabase();
+    var store = intMapStoreFactory.store('users');
+
+    var userNames = await store
+        .find(database,
+            finder: Finder(filter: Filter.equals('username', username)))
+        .then((records) =>
+            records.map((record) => User.fromMap(record.value)).toList());
+
+    if (userNames.isNotEmpty) {
       throw UserExistsException();
     } else {
-      allUsers.add(User(username));
+      var user = User(username: username); // Specify the named argument
+      await store.add(database, user.toMap());
       print("Success");
     }
   }
@@ -144,7 +182,6 @@ class ActualInterface {
 
   void createServer(String serverName) {
     allServers.add(new Server(serverName));
-    print("server created successfully");
   }
 
   void addChannelToServer(
@@ -192,3 +229,83 @@ class ActualInterface {
 }
 
 //Where should send message in channel be implemented?
+
+void main(List<String> arguments) {
+  final parser = ArgParser();
+  parser.addCommand('register');
+  parser.addCommand('login');
+  parser.addCommand('logout');
+  parser.addCommand('create-server');
+  parser.addCommand('add-channel');
+
+  final results = parser.parse(arguments);
+  final command = results.command?.name;
+
+  final actualInterface = ActualInterface();
+
+  actualInterface.registerUser("hello");
+  // actualInterface.loginUser("hello");
+  try {
+    switch (command) {
+      case 'register':
+        final username = results.command?.rest.first;
+        if (username != null) {
+          actualInterface.registerUser(username);
+        } else {
+          print('Username not provided');
+        }
+        break;
+      case 'login':
+        final username = results.command?.rest.first;
+        if (username != null) {
+          actualInterface.loginUser(username);
+        } else {
+          print('Username not provided');
+        }
+        break;
+      case 'logout':
+        final username = results.command?.rest.first;
+        if (username != null) {
+          actualInterface.logoutUser(username);
+        } else {
+          print('Username not provided');
+        }
+        break;
+      case 'create-server':
+        final serverName = results.command?.rest.first;
+        if (serverName != null) {
+          actualInterface.createServer(serverName);
+        } else {
+          print('Server name not provided');
+        }
+        break;
+      case 'add-channel':
+        final channelName = results.command?.rest[0];
+        final category = results.command?.rest[1];
+        final serverName = results.command?.rest[2];
+        if (channelName != null && category != null && serverName != null) {
+          actualInterface.addChannelToServer(channelName, category, serverName);
+        } else {
+          print('Incomplete parameters for adding channel');
+        }
+        break;
+      default:
+        print('Invalid command! Please try again.');
+        break;
+    }
+  } catch (e) {
+    if (e is UserExistsException) {
+      print('Error: ${e.message}');
+    } else if (e is AlreadyLoggedInException) {
+      print('Error: ${e.message}');
+    } else if (e is AlreadyLoggedOutException) {
+      print('Error: ${e.message}');
+    } else if (e is UserNotFoundException) {
+      print('Error: ${e.message}');
+    } else if (e is ServerNotFoundException) {
+      print('Error: ${e.message}');
+    } else {
+      print('Error: $e');
+    }
+  }
+}

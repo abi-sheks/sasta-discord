@@ -1,0 +1,10 @@
+{"version":1,"sembast":1}
+{"key":1,"store":"users","value":{"username":"hello","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":false}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":true}}
+{"key":3,"store":"users","value":{"username":"noob","loggedIn":false}}
+{"key":3,"store":"users","value":{"username":"noob","loggedIn":true}}
+{"key":1,"store":"servers","value":{"name":"intro","channels":[],"members":[]}}
+{"key":1,"store":"servers","value":{"name":"intro","channels":[{"category":"text","name":"new","messages":[]}],"members":[]}}
