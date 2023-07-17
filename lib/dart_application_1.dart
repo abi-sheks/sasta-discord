@@ -1,140 +1,19 @@
-import 'package:args/args.dart';
+import "package:dart_application_1/models/User.dart";
+import "package:dart_application_1/models/Server.dart";
+import "package:dart_application_1/models/Message.dart";
+import "package:dart_application_1/models/Channel.dart";
 import 'package:sembast/sembast.dart';
-import 'package:sembast/sembast_io.dart';
-import 'dart:async';
+import 'package:dart_application_1/helpers/db_setup.dart';
+import "package:dart_application_1/models/ServerNotFoundException.dart";
+import "package:dart_application_1/models/UserNotFoundException.dart";
+import "package:dart_application_1/models/UserExistsException.dart";
 
-Future<Database> setupDatabase() async {
-  var dbPath = r'lib\models\hello.db';
-  var database = await databaseFactoryIo.openDatabase(dbPath);
-  return database;
-}
 
-//custom exceptions, can be expanded upon
-class UserExistsException implements Exception {
-  final String message = "The user already exists";
-}
-
-class AlreadyLoggedInException implements Exception {
-  var message = "";
-  AlreadyLoggedInException(username) {
-    this.message = "The user $username is already logged in";
-  }
-}
-
-class AlreadyLoggedOutException implements Exception {
-  var message = "";
-  AlreadyLoggedOutException(username) {
-    this.message = "The user $username is already logged out";
-  }
-}
-
-class UserNotFoundException implements Exception {
-  final String message;
-  UserNotFoundException(this.message);
-}
-
-class ServerNotFoundException implements Exception {
-  final String message = "The server is not found";
-}
-
-class User {
-  final String username;
-  bool loggedIn;
-
-  User({
-    required this.username,
-    this.loggedIn = false,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'username': username,
-      'loggedIn': loggedIn,
-    };
-  }
-
-  static User fromMap(Map<String, dynamic> map) {
-    return User(
-      username: map['username'],
-      loggedIn: map['loggedIn'],
-    );
-  }
-}
-
-//future implementation
-// class Moderator implements User {
-
-// }
-class Message {
-  final String contents;
-  final User sender;
-  Message(this.sender, this.contents);
-}
-
-class Channel {
-  final String? category;
-  final String name;
-  var messages = <Message>[];
-  Channel(this.category, this.name);
-}
-
-class Server {
-  final String name;
-  var channels = <Channel>[];
-  var members = <User>[];
-  //messages will also be stored here
-  // var moderators = <Moderator>[];
-  Server(this.name);
-  void createChannel(Channel channel) {
-    channels.add(channel);
-    for (Channel channel in channels) {
-      print("${channel.name}");
-    }
-  }
-
-  void addMember(User member) {
-    members.add(member);
-  }
-
-  bool isMember(String username) {
-    var memberNames = members.map((e) => e.username).toList();
-    if (memberNames.indexOf(username) == -1)
-      return false;
-    else
-      return true;
-  }
-
-  void createMessage(String sender, String channelName, String message) {
-    //guard clauses
-    var requiredSender = members.firstWhere(
-      (member) => member.username == sender,
-      orElse: () =>
-          throw new UserNotFoundException("User has not joined this server"),
-    );
-    var requiredChannel = channels.firstWhere(
-      (channel) => channel.name == channelName,
-      orElse: () =>
-          throw new Exception("Channel does not exist on this server"),
-    );
-    requiredChannel.messages.add(new Message(requiredSender, message));
-  }
-
-  void showMessages() {
-    for (Channel channel in channels) {
-      print("${channel.name} : ");
-      for (Message message in channel.messages) {
-        print("${message.sender.username} : ${message.contents}");
-      }
-    }
-  }
-}
-
-//the actual binary will parse command line arguments and call these functions accordingly.
 class ActualInterface {
   var allUsers = <User>[];
   var allServers = <Server>[];
   Future<void> registerUser(String username) async {
-    var database = await setupDatabase();
+    var database = await setupDatabase1();
     var store = intMapStoreFactory.store('users');
 
     var userNames = await store
@@ -152,160 +31,234 @@ class ActualInterface {
     }
   }
 
-  void loginUser(String username) {
-    var user = allUsers.firstWhere(
-      (user) => user.username == username,
-      orElse: () => throw UserNotFoundException("User does not exist"),
-    );
+  Future<void> sendDirectMessage(
+      String sender, String recipient, String message) async {
+    var database = await setupDatabase1();
+    var store = StoreRef<String, Map<String, Object?>>.main();
 
-    if (user.loggedIn) {
-      throw AlreadyLoggedInException(username);
-    } else {
-      user.loggedIn = true;
-      print("Logged in successfully");
+    var userMessages = await store.record(recipient).get(database);
+    userMessages ??= <String, Object?>{}.cast<String, Object?>();
+
+    userMessages = Map<String, Object?>.from(userMessages);
+    userMessages['$sender'] = message;
+
+    await store.record(recipient).put(database, userMessages);
+
+    print('Message sent from $sender to $recipient: $message');
+  }
+
+  Future<List<String>> getMessages(String username) async {
+  var database = await setupDatabase1();
+  var store = StoreRef<String, Map<String, dynamic>>.main();
+
+  var userMessages = await store.record(username).get(database);
+  if (userMessages != null) {
+    // var messages = userMessages.values.map((value) => value.toString()).toList();
+    List<String> finalMessages = [];
+    userMessages.forEach((key, value) => 
+     finalMessages.add("$key: $value")
+     );
+    return finalMessages;
+  }
+  return [];
+}
+
+
+  Future<void> printUserMessages(String sender, String recipient) async {
+    var messages = await getMessages(recipient);
+    print(messages);
+    for (var message in messages) {
+      print(message);
+    }
+    print('Messages from $recipient to $sender:');
+    for (var message in messages) {
+      if (message.startsWith('$sender:')) {
+        print(message);
+      }
     }
   }
 
-  void logoutUser(String username) {
-    var user = allUsers.firstWhere(
-      (user) => user.username == username,
-      orElse: () => throw UserNotFoundException("User does not exist"),
-    );
+  Future<void> loginUser(String username) async {
+    var database = await setupDatabase1();
+    var store = intMapStoreFactory.store('users');
 
-    if (user.loggedIn) {
-      user.loggedIn = false;
-      print("Logged out successfully");
+    var userRecord = await store.findFirst(database,
+        finder: Finder(filter: Filter.equals('username', username)));
+
+    if (userRecord == null) {
+      throw UserNotFoundException(username);
     } else {
-      throw AlreadyLoggedOutException(username);
+      var user = User.fromMap(userRecord.value);
+
+      if (user.loggedIn == false) {
+        user.loggedIn = true;
+        await store.update(database, user.toMap(),
+            finder: Finder(filter: Filter.byKey(userRecord.key)));
+        print("Logged in successfully");
+      } else {
+        print("User already logged in");
+      }
     }
   }
 
-  void createServer(String serverName) {
-    allServers.add(new Server(serverName));
+  Future<void> logoutUser(String username) async {
+    var database = await setupDatabase1();
+    var store = intMapStoreFactory.store('users');
+
+    var userRecord = await store.findFirst(database,
+        finder: Finder(filter: Filter.equals('username', username)));
+    print(userRecord);
+
+    if (userRecord == null) {
+      throw UserNotFoundException(username);
+    } else {
+      var user = User.fromMap(userRecord.value);
+
+      if (user.loggedIn == true) {
+        user.loggedIn = false;
+        await store.update(database, user.toMap(),
+            finder: Finder(filter: Filter.byKey(userRecord.key)));
+        print("Logged out successfully");
+      } else {
+        print("User is not logged in");
+      }
+    }
   }
 
-  void addChannelToServer(
-      String channelName, String category, String serverName) {
-    var server = allServers.firstWhere(
-      (server) => server.name == serverName,
-      orElse: () => throw ServerNotFoundException(),
-    );
+  Future<void> createServer(String serverName) async {
+    var database = await setupDatabase1();
+    var store = intMapStoreFactory.store('servers');
 
-    server.createChannel(new Channel(category, channelName));
+    var server = Server(serverName);
+
+    await store.add(database, server.toMap());
+
+    print("Server created successfully");
   }
 
-  void sendMessage(String senderName, String serverName, String channelName,
-      String message) {
-    var server = allServers.firstWhere(
-      (server) => server.name == serverName,
-      orElse: () => throw ServerNotFoundException(),
+  Future<void> addChannelToServer(
+      String channelName, String category, String serverName) async {
+    var database = await setupDatabase1();
+    var store = intMapStoreFactory.store('servers');
+
+    var serverRecord = await store.findFirst(
+      database,
+      finder: Finder(filter: Filter.equals('name', serverName)),
     );
-    server.createMessage(senderName, channelName, message);
+
+    if (serverRecord == null) {
+      throw ServerNotFoundException();
+    } else {
+      var server = Server.fromMap(serverRecord.value);
+      server.createChannel(Channel(category, channelName));
+
+      await store.update(
+        database,
+        server.toMap(),
+        finder: Finder(filter: Filter.byKey(serverRecord.key)),
+      );
+
+      print("Channel added to the server successfully");
+    }
   }
 
-  void joinServer(String username, String serverName) {
-    //find the user first.
-    var requiredUser = allUsers.firstWhere(
-      (user) => user.username == username,
-      orElse: () => throw UserNotFoundException("User does not exist"),
+  Future<void> sendMessage(String senderName, Server server, String channelName,
+      String message) async {
+    var database = await server.getDatabase1();
+    var store = server.getStoreRef();
+
+    var serverRecord = await store.findFirst(
+      database,
+      finder: Finder(filter: Filter.equals('name', server.name)),
     );
-    var requiredServer = allServers.firstWhere(
-      (server) => server.name == serverName,
-      orElse: () => throw ServerNotFoundException(),
+
+    if (serverRecord == null) {
+      throw ServerNotFoundException();
+    } else {
+      var updatedServer = Server.fromMap(serverRecord.value);
+
+      var requiredSender = updatedServer.members.firstWhere(
+        (member) => member.username == senderName,
+        orElse: () =>
+            throw UserNotFoundException("User has not joined this server"),
+      );
+
+      var requiredChannel = updatedServer.channels.firstWhere(
+        (channel) => channel.name == channelName,
+        orElse: () => throw Exception("Channel does not exist on this server"),
+      );
+
+      requiredChannel.messages.add(Message(requiredSender, message));
+
+      await store.update(
+        database,
+        updatedServer.toMap(),
+        finder: Finder(filter: Filter.byKey(serverRecord.key)),
+      );
+
+      print("Message sent successfully");
+    }
+  }
+
+  Future<void> joinServer(String username, String serverName) async {
+    var database = await setupDatabase1();
+    var userStore = intMapStoreFactory.store('users');
+    var serverStore = intMapStoreFactory.store('servers');
+
+    var userRecord = await userStore.findFirst(
+      database,
+      finder: Finder(filter: Filter.equals('username', username)),
     );
-    if (requiredServer.isMember(username))
-      throw new Exception("The user is already a member of the server");
-    else
-      requiredServer.members.add(requiredUser);
+
+    if (userRecord == null) {
+      throw UserNotFoundException(username);
+    } else {
+      var user = User.fromMap(userRecord.value);
+
+      if (!user.loggedIn) {
+        print("User not logged in");
+      } else {
+        var requiredUser = User.fromMap(userRecord.value);
+
+        var serverRecord = await serverStore.findFirst(
+          database,
+          finder: Finder(filter: Filter.equals('name', serverName)),
+        );
+
+        if (serverRecord == null) {
+          throw ServerNotFoundException();
+        } else {
+          var requiredServer = Server.fromMap(serverRecord.value);
+
+          if (requiredServer.isMember(username)) {
+            throw Exception("The user is already a member of the server");
+          } else {
+            requiredServer.members.add(requiredUser);
+
+            await serverStore.update(
+              database,
+              requiredServer.toMap(),
+              finder: Finder(filter: Filter.byKey(serverRecord.key)),
+            );
+
+            print("User joined the server successfully");
+          }
+        }
+      }
+    }
   }
 
   void printMessages(String serverName) {
     var requiredServer = allServers.firstWhere(
       (server) => server.name == serverName,
-      orElse: () => throw new ServerNotFoundException(),
+      orElse: () => throw ServerNotFoundException(),
     );
-    requiredServer.showMessages();
-  }
-}
 
-//Where should send message in channel be implemented?
-
-void main(List<String> arguments) {
-  final parser = ArgParser();
-  parser.addCommand('register');
-  parser.addCommand('login');
-  parser.addCommand('logout');
-  parser.addCommand('create-server');
-  parser.addCommand('add-channel');
-
-  final results = parser.parse(arguments);
-  final command = results.command?.name;
-
-  final actualInterface = ActualInterface();
-
-  actualInterface.registerUser("hello");
-  // actualInterface.loginUser("hello");
-  try {
-    switch (command) {
-      case 'register':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.registerUser(username);
-        } else {
-          print('Username not provided');
-        }
-        break;
-      case 'login':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.loginUser(username);
-        } else {
-          print('Username not provided');
-        }
-        break;
-      case 'logout':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.logoutUser(username);
-        } else {
-          print('Username not provided');
-        }
-        break;
-      case 'create-server':
-        final serverName = results.command?.rest.first;
-        if (serverName != null) {
-          actualInterface.createServer(serverName);
-        } else {
-          print('Server name not provided');
-        }
-        break;
-      case 'add-channel':
-        final channelName = results.command?.rest[0];
-        final category = results.command?.rest[1];
-        final serverName = results.command?.rest[2];
-        if (channelName != null && category != null && serverName != null) {
-          actualInterface.addChannelToServer(channelName, category, serverName);
-        } else {
-          print('Incomplete parameters for adding channel');
-        }
-        break;
-      default:
-        print('Invalid command! Please try again.');
-        break;
-    }
-  } catch (e) {
-    if (e is UserExistsException) {
-      print('Error: ${e.message}');
-    } else if (e is AlreadyLoggedInException) {
-      print('Error: ${e.message}');
-    } else if (e is AlreadyLoggedOutException) {
-      print('Error: ${e.message}');
-    } else if (e is UserNotFoundException) {
-      print('Error: ${e.message}');
-    } else if (e is ServerNotFoundException) {
-      print('Error: ${e.message}');
-    } else {
-      print('Error: $e');
+    for (Channel channel in requiredServer.channels) {
+      print("${channel.name} :");
+      for (Message message in channel.messages) {
+        print("${message.sender.username} : ${message.contents}");
+      }
     }
   }
 }

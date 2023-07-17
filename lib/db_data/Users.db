@@ -1,0 +1,10 @@
+{"version":1,"sembast":1}
+{"key":"user1","value":{"user2":"I am doing ."}}
+{"key":"user2","value":{"user1":"Hello there!"}}
+{"key":1,"store":"users","value":{"username":"hello","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":true}}
+{"key":3,"store":"users","value":{"username":"noob","loggedIn":true}}
+{"key":1,"store":"servers","value":{"name":"intro","channels":[{"category":"text","name":"new","messages":[]}],"members":[]}}
+{"key":"user2","value":{"user1":"How are you?"}}
+{"key":"user1","value":{"user2":"I am doing well."}}
+{"key":"user1","value":{"user2":"I am doing ."}}
