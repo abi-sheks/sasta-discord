@@ -2,6 +2,7 @@ import 'package:args/args.dart';
 import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 import 'dart:async';
+import 'package:sembast/sembast_memory.dart';
 
 Future<Database> setupDatabase1() async {
   var dbPath1 = r'lib\models\Users.db';
@@ -15,7 +16,7 @@ Future<Database> setupDatabase1() async {
 //   return database2;
 // }
 
-//custom exceptions, can be expanded upon
+//custom exceptions, can be expanded ujo
 class UserExistsException implements Exception {
   final String message = "The user already exists";
 }
@@ -124,6 +125,33 @@ class Channel {
 
   StoreRef<int, Map<String, dynamic>> getStoreRef() {
     return intMapStoreFactory.store('channels');
+  }
+
+  Future<void> createMessage(Message message) async {
+    var database = await getDatabase1();
+    var store = getStoreRef();
+
+    var channelRecord = await store.findFirst(
+      database,
+      finder: Finder(
+        filter: Filter.equals('name', name),
+      ),
+    );
+
+    if (channelRecord == null) {
+      throw Exception("Channel does not exist in the database");
+    } else {
+      var updatedChannel = Channel.fromMap(channelRecord.value);
+      updatedChannel.messages.add(message);
+
+      await store.update(
+        database,
+        updatedChannel.toMap(),
+        finder: Finder(filter: Filter.byKey(channelRecord.key)),
+      );
+
+      print("Message created successfully");
+    }
   }
 }
 
@@ -256,7 +284,7 @@ bool isMember(Server server, String username) {
 }
 
 Future<void> createMessage(
-    Server server, String sender, String channelName, String message) async {
+    String sender, Server server, String channelName, String message) async {
   var database = await server.getDatabase1();
   var store = server.getStoreRef();
 
@@ -325,6 +353,49 @@ class ActualInterface {
     }
   }
 
+  Future<void> sendDirectMessage(
+      String sender, String recipient, String message) async {
+    var database = await setupDatabase1();
+    var store = StoreRef<String, Map<String, Object?>>.main();
+
+    var userMessages = await store.record(recipient).get(database);
+    userMessages ??= <String, Object?>{}.cast<String, Object?>();
+
+    userMessages = Map<String, Object?>.from(userMessages);
+    userMessages['$sender'] = message;
+
+    await store.record(recipient).put(database, userMessages);
+
+    print('Message sent from $sender to $recipient: $message');
+  }
+
+  Future<List<String>> getMessages(String username) async {
+  var database = await setupDatabase1();
+  var store = StoreRef<String, Map<String, dynamic>>.main();
+
+  var userMessages = await store.record(username).get(database);
+  if (userMessages != null) {
+    var messages = userMessages.values.map((value) => value.toString()).toList();
+    return messages;
+  }
+  return [];
+}
+
+
+  Future<void> printUserMessages(String sender, String recipient) async {
+    var messages = await getMessages(recipient);
+    print(messages);
+    for (var message in messages) {
+      print(message);
+    }
+    print('Messages from $recipient to $sender:');
+    for (var message in messages) {
+      if (message.startsWith('$sender:')) {
+        print(message);
+      }
+    }
+  }
+
   Future<void> loginUser(String username) async {
     var database = await setupDatabase1();
     var store = intMapStoreFactory.store('users');
@@ -354,6 +425,7 @@ class ActualInterface {
 
     var userRecord = await store.findFirst(database,
         finder: Finder(filter: Filter.equals('username', username)));
+    print(userRecord);
 
     if (userRecord == null) {
       throw UserNotFoundException(username);
@@ -408,25 +480,37 @@ class ActualInterface {
     }
   }
 
-  Future<void> sendMessage(String senderName, String serverName,
-      String channelName, String message) async {
-    var database = await setupDatabase1();
-    var store = intMapStoreFactory.store('servers');
+  Future<void> sendMessage(String senderName, Server server, String channelName,
+      String message) async {
+    var database = await server.getDatabase1();
+    var store = server.getStoreRef();
 
     var serverRecord = await store.findFirst(
       database,
-      finder: Finder(filter: Filter.equals('name', serverName)),
+      finder: Finder(filter: Filter.equals('name', server.name)),
     );
 
     if (serverRecord == null) {
       throw ServerNotFoundException();
     } else {
-      var server = Server.fromMap(serverRecord.value);
-      server.createMessage(senderName, channelName, message);
+      var updatedServer = Server.fromMap(serverRecord.value);
+
+      var requiredSender = updatedServer.members.firstWhere(
+        (member) => member.username == senderName,
+        orElse: () =>
+            throw UserNotFoundException("User has not joined this server"),
+      );
+
+      var requiredChannel = updatedServer.channels.firstWhere(
+        (channel) => channel.name == channelName,
+        orElse: () => throw Exception("Channel does not exist on this server"),
+      );
+
+      requiredChannel.messages.add(Message(requiredSender, message));
 
       await store.update(
         database,
-        server.toMap(),
+        updatedServer.toMap(),
         finder: Finder(filter: Filter.byKey(serverRecord.key)),
       );
 
@@ -436,9 +520,10 @@ class ActualInterface {
 
   Future<void> joinServer(String username, String serverName) async {
     var database = await setupDatabase1();
-    var store = intMapStoreFactory.store('servers');
+    var userStore = intMapStoreFactory.store('users');
+    var serverStore = intMapStoreFactory.store('servers');
 
-    var userRecord = await store.findFirst(
+    var userRecord = await userStore.findFirst(
       database,
       finder: Finder(filter: Filter.equals('username', username)),
     );
@@ -446,30 +531,36 @@ class ActualInterface {
     if (userRecord == null) {
       throw UserNotFoundException(username);
     } else {
-      var requiredUser = User.fromMap(userRecord.value);
+      var user = User.fromMap(userRecord.value);
 
-      var serverRecord = await store.findFirst(
-        database,
-        finder: Finder(filter: Filter.equals('name', serverName)),
-      );
-
-      if (serverRecord == null) {
-        throw ServerNotFoundException();
+      if (!user.loggedIn) {
+        print("User not logged in");
       } else {
-        var requiredServer = Server.fromMap(serverRecord.value);
+        var requiredUser = User.fromMap(userRecord.value);
 
-        if (requiredServer.isMember(username)) {
-          throw Exception("The user is already a member of the server");
+        var serverRecord = await serverStore.findFirst(
+          database,
+          finder: Finder(filter: Filter.equals('name', serverName)),
+        );
+
+        if (serverRecord == null) {
+          throw ServerNotFoundException();
         } else {
-          requiredServer.members.add(requiredUser);
+          var requiredServer = Server.fromMap(serverRecord.value);
 
-          await store.update(
-            database,
-            requiredServer.toMap(),
-            finder: Finder(filter: Filter.byKey(serverRecord.key)),
-          );
+          if (requiredServer.isMember(username)) {
+            throw Exception("The user is already a member of the server");
+          } else {
+            requiredServer.members.add(requiredUser);
 
-          print("User joined the server successfully");
+            await serverStore.update(
+              database,
+              requiredServer.toMap(),
+              finder: Finder(filter: Filter.byKey(serverRecord.key)),
+            );
+
+            print("User joined the server successfully");
+          }
         }
       }
     }
@@ -492,7 +583,7 @@ class ActualInterface {
 
 //Where should send message in channel be implemented?
 
-void main(List<String> arguments) {
+void main(List<String> arguments) async {
   final parser = ArgParser();
   parser.addCommand('register');
   parser.addCommand('login');
@@ -506,13 +597,20 @@ void main(List<String> arguments) {
   final command = results.command?.name;
 
   final actualInterface = ActualInterface();
+  await actualInterface.sendDirectMessage('user1', 'user2', 'Hello there!');
+  await actualInterface.sendDirectMessage('user1', 'user2', 'How are you?');
+  await actualInterface.sendDirectMessage('user2', 'user1', 'I am doing well.');
+  await actualInterface.sendDirectMessage('user2', 'user1', 'I am doing .');
+
+  await actualInterface.printUserMessages('user1', 'user2');
 
   // actualInterface.loginUser("hello");
   // actualInterface.loginUser("hello1");
 
   // actualInterface.logoutUser("hello1");
   //   actualInterface.createServer("hello1");
-
+  // actualInterface.logoutUser("noob");
+  // actualInterface.joinServer("noob", "intro");
   try {
     switch (command) {
       case 'register':
@@ -568,7 +666,7 @@ void main(List<String> arguments) {
             serverName != null &&
             message != null) {
           actualInterface.sendMessage(
-              senderName, serverName, channelName, message);
+              senderName, serverName as Server, channelName, message);
         } else {
           print('null message');
         }
@@ -578,7 +676,6 @@ void main(List<String> arguments) {
         final serverName = results.command?.rest[1];
         if (serverName != null && username != null) {
           actualInterface.joinServer(username, serverName);
-          print('server joined succesfully');
         } else {
           print('Server name not provided');
         }
