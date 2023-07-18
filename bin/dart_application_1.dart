@@ -114,6 +114,22 @@ void main(List<String> arguments) async {
           print('Server name not provided');
         }
         break;
+        case'dm-message':
+        final sender=results.command?.rest[0];
+        final recipient=results.command?.rest[1];
+        final message=results.command?.rest[2];
+        if(sender!=null && recipient!=null && message!=null)
+        {
+          actualInterface.sendDirectMessage(sender, recipient, message);
+        }
+        break;
+        case'show-dm':
+        final sender=results.command?.rest[0];
+        final recipient=results.command?.rest[1];
+        if(sender!=null && recipient!=null){
+          actualInterface.printUserMessages(sender, recipient);
+        }
+        break;
       default:
         print('Invalid command! Please try again.');
         break;
