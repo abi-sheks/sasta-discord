@@ -1,3 +1,8 @@
 # https://dart.dev/guides/libraries/private-files
 # Created by `dart pub`
 .dart_tool/
+lib/hello.db
+lib/models/Users.db
+lib/models/db_data/Users.db
+lib/models/db_data/Servers.db
+
