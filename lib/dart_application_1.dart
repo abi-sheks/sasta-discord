@@ -9,7 +9,7 @@ import "package:dart_application_1/models/UserNotFoundException.dart";
 import "package:dart_application_1/models/UserExistsException.dart";
 
 
-class ActualInterface {
+class DiscordAPI {
   var allUsers = <User>[];
   var allServers = <Server>[];
   Future<void> registerUser(String username) async {

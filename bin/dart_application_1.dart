@@ -20,7 +20,7 @@ void main(List<String> arguments) async {
   final results = parser.parse(arguments);
   final command = results.command?.name;
 
-  final actualInterface = ActualInterface();
+  final actualInterface = DiscordAPI();
   await actualInterface.sendDirectMessage('user2', 'user1', 'hey how r ya?');
   await actualInterface.sendDirectMessage('user1', 'user2', 'I am doing well.');
 
