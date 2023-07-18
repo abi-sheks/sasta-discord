@@ -1,0 +1,11 @@
+{"version":1,"sembast":1}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"me too .",{"sender":"user3","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"}]}}
+{"key":"user2","value":{"messages":["I am doing well.",{"sender":"user1","contents":"I am doing well."},"I am doing well.",{"sender":"user1","contents":"I am doing well."}]}}
+{"key":1,"store":"users","value":{"username":"hello","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"hello1","loggedIn":true}}
+{"key":3,"store":"users","value":{"username":"noob","loggedIn":true}}
+{"key":4,"store":"users","value":{"username":"noob2","loggedIn":true}}
+{"key":1,"store":"servers","value":{"name":"intro","channels":[{"category":"text","name":"new","messages":[{"contents":"hi","sender":{"username":"noob2","loggedIn":true}}]}],"members":[{"username":"noob","loggedIn":true},{"username":"noob2","loggedIn":true}]}}
+{"key":"user2","value":{"messages":["I am doing well.",{"sender":"user1","contents":"I am doing well."},"I am doing well.",{"sender":"user1","contents":"I am doing well."},"I am doing well.",{"sender":"user1","contents":"I am doing well."}]}}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"me too .",{"sender":"user3","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."}]}}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"me too .",{"sender":"user3","contents":"me too ."},"hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"me too .",{"sender":"user3","contents":"me too ."}]}}
