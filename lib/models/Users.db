@@ -1,5 +1,5 @@
 {"version":1,"sembast":1}
-{"key":"user2","value":{"user1":"Hello there!"}}
-{"key":"user2","value":{"user1":"How are you?"}}
-{"key":"user1","value":{"user2":"I am doing well."}}
-{"key":"user1","value":{"user2":"I am doing ."}}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"}]}}
+{"key":"user2","value":{"messages":["I am doing well.",{"sender":"user1","contents":"I am doing well."}]}}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."}]}}
+{"key":"user1","value":{"messages":["hey how r ya?",{"sender":"user2","contents":"hey how r ya?"},"me too .",{"sender":"user2","contents":"me too ."},"me too .",{"sender":"user3","contents":"me too ."}]}}

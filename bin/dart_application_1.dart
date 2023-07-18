@@ -6,7 +6,6 @@ import 'package:dart_application_1/models/ServerNotFoundException.dart';
 import 'package:dart_application_1/models/AlreadyLoggedInException.dart';
 import 'package:dart_application_1/models/AlreadyLoggedOutException.dart';
 import 'package:dart_application_1/models/Server.dart';
-//Where should send message in channel be implemented?
 
 void main(List<String> arguments) async {
   final parser = ArgParser();
@@ -22,12 +21,14 @@ void main(List<String> arguments) async {
   final command = results.command?.name;
 
   final actualInterface = ActualInterface();
-  await actualInterface.sendDirectMessage('user1', 'user2', 'Hello there!');
-  await actualInterface.sendDirectMessage('user1', 'user2', 'How are you?');
-  await actualInterface.sendDirectMessage('user2', 'user1', 'I am doing well.');
-  await actualInterface.sendDirectMessage('user2', 'user1', 'I am doing .');
+  await actualInterface.sendDirectMessage('user2', 'user1', 'hey how r ya?');
+  await actualInterface.sendDirectMessage('user1', 'user2', 'I am doing well.');
+
+  await actualInterface.sendDirectMessage('user2', 'user1', 'me too .');
+  await actualInterface.sendDirectMessage('user3', 'user1', 'me too .');
 
   await actualInterface.printUserMessages('user1', 'user2');
+  await actualInterface.printUserMessages('user2', 'user1');
 
   // actualInterface.loginUser("hello");
   // actualInterface.loginUser("hello1");

@@ -34,49 +34,73 @@ class ActualInterface {
   Future<void> sendDirectMessage(
       String sender, String recipient, String message) async {
     var database = await setupDatabase1();
-    var store = StoreRef<String, Map<String, Object?>>.main();
+    var store = StoreRef<String, dynamic>.main();
 
     var userMessages = await store.record(recipient).get(database);
-    userMessages ??= <String, Object?>{}.cast<String, Object?>();
 
-    userMessages = Map<String, Object?>.from(userMessages);
-    userMessages['$sender'] = message;
+    userMessages ??= {'messages': <dynamic>[]};
 
-    await store.record(recipient).put(database, userMessages);
+    var messages =
+        List<dynamic>.from(userMessages['messages'] as List<dynamic>);
 
+    messages.add(message);
+    messages.add({'sender': sender, 'contents': message});
+    var updatedUserMessages = {...userMessages, 'messages': messages};
+  
+    await store.record(recipient).put(database, updatedUserMessages);
     print('Message sent from $sender to $recipient: $message');
   }
 
   Future<List<String>> getMessages(String username) async {
   var database = await setupDatabase1();
-  var store = StoreRef<String, Map<String, dynamic>>.main();
+  var store = StoreRef<String, dynamic>.main();
 
   var userMessages = await store.record(username).get(database);
+
   if (userMessages != null) {
-    // var messages = userMessages.values.map((value) => value.toString()).toList();
-    List<String> finalMessages = [];
-    userMessages.forEach((key, value) => 
-     finalMessages.add("$key: $value")
-     );
-    return finalMessages;
+    var messages = userMessages['messages'] as List<dynamic>?;
+
+    if (messages != null) {
+      var formattedMessages = messages
+          .map((msg) {
+            if (msg is Map<String, dynamic>) {
+              return '${msg['sender']}:${msg['contents']}';
+            } else {
+              // Handle the case when msg is a string
+              return msg.toString();
+            }
+          })
+          .toList();
+
+     
+      return formattedMessages;
+    }
   }
-  return [];
+
+  return []; // Return an empty list if no messages or invalid data
 }
 
+Future<void> printUserMessages(String sender, String recipient) async {
+  var messages = await getMessages(recipient);
+  print('Messages between $sender and $recipient:');
 
-  Future<void> printUserMessages(String sender, String recipient) async {
-    var messages = await getMessages(recipient);
-    print(messages);
-    for (var message in messages) {
-      print(message);
-    }
-    print('Messages from $recipient to $sender:');
-    for (var message in messages) {
-      if (message.startsWith('$sender:')) {
-        print(message);
-      }
+  var formattedMessages = messages
+      .where((message) => message.contains(':'))
+      .map((message) {
+    var parts = message.split(':');
+    var messageSender = parts[0];
+    var messageContent = parts[1];
+    return {'sender': messageSender, 'content': messageContent};
+  }).toList();
+
+  for (var message in formattedMessages) {
+    var messageSender = message['sender'];
+    var messageContent = message['content'];
+    if (messageSender == sender || messageSender == recipient) {
+      print('$messageSender: $messageContent');
     }
   }
+}
 
   Future<void> loginUser(String username) async {
     var database = await setupDatabase1();
