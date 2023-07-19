@@ -5,19 +5,29 @@ import 'package:dart_application_1/models/User.dart';
 import 'Message.dart';
 import 'package:sembast/sembast.dart';
 import '../helpers/db_setup.dart';
+import 'role.dart';
 
 
 class Server {
   final String name;
+  List<Role> roles;
   List<Channel> channels;
   List<User> members;
 
-  Server(this.name, {List<Channel>? channels, List<User>? members})
+  Server(this.name, {List<Channel>? channels, List<User>? members, List<Role>? roles})
       : channels = channels ?? [],
-        members = members ?? [];
+        members = members ?? [],
+        roles = roles ?? [];
   bool isMember(String username) {
     var memberNames = members.map((e) => e.username).toList();
     return memberNames.contains(username);
+  }
+
+  void addRole(Role role) {
+    roles.add(role);
+  }
+  void addUserToRole(Role role, User user) {
+    role.usersWithRole.add(user);
   }
 
   void createChannel(Channel channel) {
@@ -77,6 +87,12 @@ class Server {
 
   StoreRef<int, Map<String, dynamic>> getStoreRef() {
     return intMapStoreFactory.store('servers');
+  }
+  Role getRole(String roleName){ 
+    return roles.firstWhere((role) => role.name == roleName, orElse: () => throw Exception("Role was not found"));
+  }
+  User getMember(String userName) {
+    return members.firstWhere((member) => member.username == userName, orElse: () => throw UserNotFoundException("User was not found on the server"));
   }
 }
 
@@ -155,4 +171,5 @@ void showMessages(Server server) {
       print("${message.sender.username} : ${message.contents}");
     }
   }
+  
 }

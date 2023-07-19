@@ -1,5 +1,6 @@
 import "package:dart_application_1/models/User.dart";
-import "package:dart_application_1/models/Server.dart";
+import "package:dart_application_1/models/role.dart";
+import 'package:dart_application_1/models/server.dart';
 import "package:dart_application_1/models/Message.dart";
 import "package:dart_application_1/models/Channel.dart";
 import 'package:sembast/sembast.dart';
@@ -7,7 +8,7 @@ import 'package:dart_application_1/helpers/db_setup.dart';
 import "package:dart_application_1/models/ServerNotFoundException.dart";
 import "package:dart_application_1/models/UserNotFoundException.dart";
 import "package:dart_application_1/models/UserExistsException.dart";
-
+import "package:dart_application_1/enums/permissions.dart";
 
 class DiscordAPI {
   var allUsers = <User>[];
@@ -46,61 +47,57 @@ class DiscordAPI {
     messages.add(message);
     messages.add({'sender': sender, 'contents': message});
     var updatedUserMessages = {...userMessages, 'messages': messages};
-  
+
     await store.record(recipient).put(database, updatedUserMessages);
     print('Message sent from $sender to $recipient: $message');
   }
 
   Future<List<String>> getMessages(String username) async {
-  var database = await setupDatabase1();
-  var store = StoreRef<String, dynamic>.main();
+    var database = await setupDatabase1();
+    var store = StoreRef<String, dynamic>.main();
 
-  var userMessages = await store.record(username).get(database);
+    var userMessages = await store.record(username).get(database);
 
-  if (userMessages != null) {
-    var messages = userMessages['messages'] as List<dynamic>?;
+    if (userMessages != null) {
+      var messages = userMessages['messages'] as List<dynamic>?;
 
-    if (messages != null) {
-      var formattedMessages = messages
-          .map((msg) {
-            if (msg is Map<String, dynamic>) {
-              return '${msg['sender']}:${msg['contents']}';
-            } else {
-              // Handle the case when msg is a string
-              return msg.toString();
-            }
-          })
-          .toList();
+      if (messages != null) {
+        var formattedMessages = messages.map((msg) {
+          if (msg is Map<String, dynamic>) {
+            return '${msg['sender']}:${msg['contents']}';
+          } else {
+            // Handle the case when msg is a string
+            return msg.toString();
+          }
+        }).toList();
 
-     
-      return formattedMessages;
+        return formattedMessages;
+      }
     }
+
+    return []; // Return an empty list if no messages or invalid data
   }
 
-  return []; // Return an empty list if no messages or invalid data
-}
+  Future<void> printUserMessages(String sender, String recipient) async {
+    var messages = await getMessages(recipient);
+    print('Messages between $sender and $recipient:');
 
-Future<void> printUserMessages(String sender, String recipient) async {
-  var messages = await getMessages(recipient);
-  print('Messages between $sender and $recipient:');
+    var formattedMessages =
+        messages.where((message) => message.contains(':')).map((message) {
+      var parts = message.split(':');
+      var messageSender = parts[0];
+      var messageContent = parts[1];
+      return {'sender': messageSender, 'content': messageContent};
+    }).toList();
 
-  var formattedMessages = messages
-      .where((message) => message.contains(':'))
-      .map((message) {
-    var parts = message.split(':');
-    var messageSender = parts[0];
-    var messageContent = parts[1];
-    return {'sender': messageSender, 'content': messageContent};
-  }).toList();
-
-  for (var message in formattedMessages) {
-    var messageSender = message['sender'];
-    var messageContent = message['content'];
-    if (messageSender == sender || messageSender == recipient) {
-      print('$messageSender: $messageContent');
+    for (var message in formattedMessages) {
+      var messageSender = message['sender'];
+      var messageContent = message['content'];
+      if (messageSender == sender || messageSender == recipient) {
+        print('$messageSender: $messageContent');
+      }
     }
   }
-}
 
   Future<void> loginUser(String username) async {
     var database = await setupDatabase1();
@@ -186,8 +183,9 @@ Future<void> printUserMessages(String sender, String recipient) async {
     }
   }
 
-  Future<void> sendMessage(String senderName, Server server, String channelName,
-      String message) async {
+  Future<void> sendMessage(String senderName, String serverName,
+      String channelName, String message) async {
+    var server = this.getServer(serverName);
     var database = await server.getDatabase1();
     var store = server.getStoreRef();
 
@@ -284,5 +282,33 @@ Future<void> printUserMessages(String sender, String recipient) async {
         print("${message.sender.username} : ${message.contents}");
       }
     }
+  }
+
+  void createRole(String serverName, String? roleName, String? rolePerm) {
+    var server = this.getServer(serverName);
+    if (roleName == null) {
+      throw Exception("Please provide a name for the role");
+    }
+    if (rolePerm == null) {
+      server.addRole(Role(roleName, Perm.member));
+      return;
+    }
+    if (rolePerm == "moderator") {
+      server.addRole(Role(roleName, Perm.moderator));
+      return;
+    }
+    server.addRole(Role(roleName, Perm.member));
+  }
+
+  void assignRole(String serverName, String roleName, String username) {
+    var server = this.getServer(serverName);
+    var reqRole = server.getRole(roleName);
+    var reqUser = server.getMember(username);
+    reqRole.usersWithRole.add(reqUser);
+  }
+
+  Server getServer(String name) {
+    return allServers.firstWhere((server) => server.name == name,
+        orElse: () => throw ServerNotFoundException());
   }
 }
