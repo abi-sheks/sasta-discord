@@ -1,5 +1,5 @@
 import '../enums/permissions.dart';
-import 'User.dart';
+import 'user.dart';
 
 class Role {
   final String name;

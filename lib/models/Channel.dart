@@ -1,20 +1,20 @@
-import 'Message.dart';
-import 'Server.dart';
+import 'message.dart';
 import '../helpers/db_setup.dart';
-import "ServerNotFoundException.dart";
 import 'package:sembast/sembast.dart';
+import '../enums/permissions.dart';
+import 'role.dart';
 
 class Channel {
-  final String? category;
+  final Perm? channelPerm;
   final String name;
   List<Message> messages;
 
-  Channel(this.category, this.name, {List<Message>? messages})
+  Channel(this.channelPerm, this.name, {List<Message>? messages})
       : messages = messages ?? [];
 
   Map<String, dynamic> toMap() {
     return {
-      'category': category,
+      'channelPerm': channelPerm,
       'name': name,
       'messages': messages.map((message) => message.toMap()).toList(),
     };
@@ -22,7 +22,7 @@ class Channel {
 
   static Channel fromMap(Map<String, dynamic> map) {
     return Channel(
-      map['category'],
+      map['channelPerm'],
       map['name'],
       messages: (map['messages'] as List<dynamic>)
           .map((message) => Message.fromMap(message))
@@ -38,7 +38,7 @@ class Channel {
     return intMapStoreFactory.store('channels');
   }
 
-  Future<void> createMessage(Message message) async {
+  Future<void> createMessage(Message message, List<Role> serverRoles) async {
     var database = await getDatabase1();
     var store = getStoreRef();
 
@@ -51,10 +51,20 @@ class Channel {
 
     if (channelRecord == null) {
       throw Exception("Channel does not exist in the database");
-    } else {
+    }
       var updatedChannel = Channel.fromMap(channelRecord.value);
-      updatedChannel.messages.add(message);
-
+      if(channelPerm == Perm.member)
+      {
+        messages.add(message);
+      }
+      else {
+      var senderRole = serverRoles.firstWhere((role) => role.usersWithRole.contains(message.sender), orElse: () => throw Exception("The sender does not have permission to send messages in this channel"));
+      if(senderRole.accessLevel == Perm.moderator) 
+      {
+        messages.add(message);
+      }
+      else throw Exception("The sender does not have permission to send messages in this channel");
+      }
       await store.update(
         database,
         updatedChannel.toMap(),
@@ -62,31 +72,6 @@ class Channel {
       );
 
       print("Message created successfully");
-    }
   }
 }
 
-Future<void> createChannel(Server server, Channel channel) async {
-  var database = await server.getDatabase1();
-  var store = server.getStoreRef();
-
-  var serverRecord = await store.findFirst(
-    database,
-    finder: Finder(filter: Filter.equals('name', server.name)),
-  );
-
-  if (serverRecord == null) {
-    throw ServerNotFoundException();
-  } else {
-    var updatedServer = Server.fromMap(serverRecord.value);
-    updatedServer.channels.add(channel);
-
-    await store.update(
-      database,
-      updatedServer.toMap(),
-      finder: Finder(filter: Filter.byKey(serverRecord.key)),
-    );
-
-    print("Channel created successfully");
-  }
-}

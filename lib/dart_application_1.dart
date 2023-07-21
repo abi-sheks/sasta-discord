@@ -1,8 +1,8 @@
-import "package:dart_application_1/models/User.dart";
+import 'package:dart_application_1/models/user.dart';
 import "package:dart_application_1/models/role.dart";
 import 'package:dart_application_1/models/server.dart';
-import "package:dart_application_1/models/Message.dart";
-import "package:dart_application_1/models/Channel.dart";
+import "package:dart_application_1/models/message.dart";
+import 'package:dart_application_1/models/channel.dart';
 import 'package:sembast/sembast.dart';
 import 'package:dart_application_1/helpers/db_setup.dart';
 import "package:dart_application_1/models/ServerNotFoundException.dart";
@@ -158,7 +158,7 @@ class DiscordAPI {
   }
 
   Future<void> addChannelToServer(
-      String channelName, String category, String serverName) async {
+      String channelName, String channelType, String serverName) async {
     var database = await setupDatabase1();
     var store = intMapStoreFactory.store('servers');
 
@@ -171,7 +171,14 @@ class DiscordAPI {
       throw ServerNotFoundException();
     } else {
       var server = Server.fromMap(serverRecord.value);
-      server.createChannel(Channel(category, channelName));
+      if(channelType == "open")
+      {
+      server.createChannel(Channel(Perm.member, channelName));
+      }
+      else if(channelType == "closed") 
+      {
+        server.createChannel(Channel(Perm.moderator, channelName));
+      }
 
       await store.update(
         database,
@@ -210,7 +217,7 @@ class DiscordAPI {
         orElse: () => throw Exception("Channel does not exist on this server"),
       );
 
-      requiredChannel.messages.add(Message(requiredSender, message));
+      requiredChannel.createMessage(Message(requiredSender, message), server.roles);
 
       await store.update(
         database,
@@ -270,19 +277,19 @@ class DiscordAPI {
     }
   }
 
-  void printMessages(String serverName) {
-    var requiredServer = allServers.firstWhere(
-      (server) => server.name == serverName,
-      orElse: () => throw ServerNotFoundException(),
-    );
+  // void printMessages(String serverName) {
+  //   var requiredServer = allServers.firstWhere(
+  //     (server) => server.name == serverName,
+  //     orElse: () => throw ServerNotFoundException(),
+  //   );
 
-    for (Channel channel in requiredServer.channels) {
-      print("${channel.name} :");
-      for (Message message in channel.messages) {
-        print("${message.sender.username} : ${message.contents}");
-      }
-    }
-  }
+  //   for (Channel channel in requiredServer.channels) {
+  //     print("${channel.name} :");
+  //     for (Message message in channel.messages) {
+  //       print("${message.sender.username} : ${message.contents}");
+  //     }
+  //   }
+  // }
 
   void createRole(String serverName, String? roleName, String? rolePerm) {
     var server = this.getServer(serverName);
@@ -304,7 +311,7 @@ class DiscordAPI {
     var server = this.getServer(serverName);
     var reqRole = server.getRole(roleName);
     var reqUser = server.getMember(username);
-    reqRole.usersWithRole.add(reqUser);
+    server.addUserToRole(reqRole, reqUser);
   }
 
   Server getServer(String name) {

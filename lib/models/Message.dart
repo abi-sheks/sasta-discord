@@ -1,4 +1,4 @@
-import "package:dart_application_1/models/User.dart";
+import "package:dart_application_1/models/user.dart";
 
 class Message {
   final String contents;

@@ -92,7 +92,8 @@ void main(List<String> arguments) async {
       case 'show-message':
         final serverName = results.command?.rest.first;
         if (serverName != null) {
-          actualInterface.printMessages(serverName);
+          var server = actualInterface.getServer(serverName);
+          server.showMessages();
         } else {
           print('Server name not provided');
         }

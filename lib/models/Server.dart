@@ -1,8 +1,8 @@
 import 'package:dart_application_1/models/ServerNotFoundException.dart';
 import 'UserNotFoundException.dart';
-import 'Channel.dart';
-import 'package:dart_application_1/models/User.dart';
-import 'Message.dart';
+import 'channel.dart';
+import 'package:dart_application_1/models/user.dart';
+import 'message.dart';
 import 'package:sembast/sembast.dart';
 import '../helpers/db_setup.dart';
 import 'role.dart';
@@ -32,25 +32,46 @@ class Server {
 
   void createChannel(Channel channel) {
     channels.add(channel);
-    for (Channel channel in channels) {
-      print("${channel.name}");
-    }
   }
 
-  void createMessage(String sender, String channelName, String message) {
-    var requiredSender = members.firstWhere(
-      (member) => member.username == sender,
-      orElse: () =>
-          throw UserNotFoundException("User has not joined this server"),
-    );
+// Future<void> createMessage(
+//     String sender, String channelName, String message) async {
+//   var server = this;
+//   var database = await server.getDatabase1();
+//   var store = server.getStoreRef();
 
-    var requiredChannel = channels.firstWhere(
-      (channel) => channel.name == channelName,
-      orElse: () => throw Exception("Channel does not exist on this server"),
-    );
+//   var serverRecord = await store.findFirst(
+//     database,
+//     finder: Finder(filter: Filter.equals('name', server.name)),
+//   );
 
-    requiredChannel.messages.add(Message(requiredSender, message));
-  }
+//   if (serverRecord == null) {
+//     throw ServerNotFoundException();
+//   } else {
+//     var updatedServer = Server.fromMap(serverRecord.value);
+
+//     var requiredSender = updatedServer.members.firstWhere(
+//       (member) => member.username == sender,
+//       orElse: () =>
+//           throw UserNotFoundException("User has not joined this server"),
+//     );
+
+//     var requiredChannel = updatedServer.channels.firstWhere(
+//       (channel) => channel.name == channelName,
+//       orElse: () => throw Exception("Channel does not exist on this server"),
+//     );
+
+//     requiredChannel.createMessage(Message(requiredSender, message), roles);
+
+//     await store.update(
+//       database,
+//       updatedServer.toMap(),
+//       finder: Finder(filter: Filter.byKey(serverRecord.key)),
+//     );
+
+//     print("Message created successfully");
+//   }
+// }
 
   void showMessages() {
     for (Channel channel in channels) {
@@ -126,50 +147,3 @@ bool isMember(Server server, String username) {
   return memberNames.contains(username);
 }
 
-Future<void> createMessage(
-    String sender, Server server, String channelName, String message) async {
-  var database = await server.getDatabase1();
-  var store = server.getStoreRef();
-
-  var serverRecord = await store.findFirst(
-    database,
-    finder: Finder(filter: Filter.equals('name', server.name)),
-  );
-
-  if (serverRecord == null) {
-    throw ServerNotFoundException();
-  } else {
-    var updatedServer = Server.fromMap(serverRecord.value);
-
-    var requiredSender = updatedServer.members.firstWhere(
-      (member) => member.username == sender,
-      orElse: () =>
-          throw UserNotFoundException("User has not joined this server"),
-    );
-
-    var requiredChannel = updatedServer.channels.firstWhere(
-      (channel) => channel.name == channelName,
-      orElse: () => throw Exception("Channel does not exist on this server"),
-    );
-
-    requiredChannel.messages.add(Message(requiredSender, message));
-
-    await store.update(
-      database,
-      updatedServer.toMap(),
-      finder: Finder(filter: Filter.byKey(serverRecord.key)),
-    );
-
-    print("Message created successfully");
-  }
-}
-
-void showMessages(Server server) {
-  for (Channel channel in server.channels) {
-    print("${channel.name} :");
-    for (Message message in channel.messages) {
-      print("${message.sender.username} : ${message.contents}");
-    }
-  }
-  
-}
