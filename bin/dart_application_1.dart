@@ -22,26 +22,30 @@ void main(List<String> arguments) async {
   final actualInterface = DiscordAPI();
   try {
     switch (command) {
-      case 'register':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.registerUser(username);
+   case 'register':
+        final username = results.command?.rest[0];
+        final password = results.command?.rest[1];
+
+        if (username != null && password != null) {
+          actualInterface.registerUser(username, password);
         } else {
           print('Username not provided');
         }
         break;
       case 'login':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.loginUser(username);
+        final username = results.command?.rest[0];
+        final password = results.command?.rest[1];
+        if (username != null && password != null) {
+          actualInterface.loginUser(username,password);
         } else {
           print('Username not provided');
         }
         break;
       case 'logout':
-        final username = results.command?.rest.first;
-        if (username != null) {
-          actualInterface.logoutUser(username);
+         final username = results.command?.rest[0];
+        final password = results.command?.rest[1];
+        if (username != null && password != null) {
+          actualInterface.logoutUser(username,password);
         } else {
           print('Username not provided');
         }

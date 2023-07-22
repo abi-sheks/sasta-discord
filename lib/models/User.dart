@@ -1,16 +1,19 @@
 class User {
   final String username;
   bool loggedIn;
+  final String password;
 
   User({
     required this.username,
     this.loggedIn = false,
+    required this.password,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'username': username,
       'loggedIn': loggedIn,
+      'password': password,
     };
   }
 
@@ -18,6 +21,7 @@ class User {
     return User(
       username: map['username'],
       loggedIn: map['loggedIn'],
+      password: map['password'],
     );
   }
 }

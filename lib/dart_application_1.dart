@@ -9,11 +9,12 @@ import "package:dart_application_1/models/ServerNotFoundException.dart";
 import "package:dart_application_1/models/UserNotFoundException.dart";
 import "package:dart_application_1/models/UserExistsException.dart";
 import "package:dart_application_1/enums/permissions.dart";
+import 'package:bcrypt/bcrypt.dart';
 
 class DiscordAPI {
   var allUsers = <User>[];
   var allServers = <Server>[];
-  Future<void> registerUser(String username) async {
+    Future<void> registerUser(String username, String password) async {
     var database = await setupDatabase1();
     var store = intMapStoreFactory.store('users');
 
@@ -26,7 +27,15 @@ class DiscordAPI {
     if (userNames.isNotEmpty) {
       throw UserExistsException();
     } else {
-      var user = User(username: username); // Specify the named argument
+      // Generate a salt for bcrypt
+      var salt = BCrypt.gensalt();
+
+      // Hash the password using bcrypt
+      var hashedPassword = BCrypt.hashpw(password, salt);
+
+      var user = User(
+          username: username,
+          password: hashedPassword); // Specify the named argument
       await store.add(database, user.toMap());
       print("Success");
     }
@@ -99,7 +108,7 @@ class DiscordAPI {
     }
   }
 
-  Future<void> loginUser(String username) async {
+  Future<void> loginUser(String username, String password) async {
     var database = await setupDatabase1();
     var store = intMapStoreFactory.store('users');
 
@@ -111,37 +120,45 @@ class DiscordAPI {
     } else {
       var user = User.fromMap(userRecord.value);
 
-      if (user.loggedIn == false) {
-        user.loggedIn = true;
-        await store.update(database, user.toMap(),
-            finder: Finder(filter: Filter.byKey(userRecord.key)));
-        print("Logged in successfully");
+      final bool checkPassword = await BCrypt.checkpw(
+          password, user.password); // Use the actual password parameter
+      if (checkPassword) {
+        if (user.loggedIn == false) {
+          user.loggedIn = true;
+          await store.update(database, user.toMap(),
+              finder: Finder(filter: Filter.byKey(userRecord.key)));
+          print("Logged in successfully");
+        } else {
+          print("User already logged in");
+        }
       } else {
-        print("User already logged in");
+        print("Invalid password");
       }
     }
   }
-
-  Future<void> logoutUser(String username) async {
+ Future<void> logoutUser(String username, String password) async {
     var database = await setupDatabase1();
     var store = intMapStoreFactory.store('users');
 
     var userRecord = await store.findFirst(database,
         finder: Finder(filter: Filter.equals('username', username)));
-    print(userRecord);
 
     if (userRecord == null) {
       throw UserNotFoundException(username);
     } else {
       var user = User.fromMap(userRecord.value);
+      final bool checkPassword = await BCrypt.checkpw(
+          password, user.password); // Use the actual password parameter
 
-      if (user.loggedIn == true) {
-        user.loggedIn = false;
-        await store.update(database, user.toMap(),
-            finder: Finder(filter: Filter.byKey(userRecord.key)));
-        print("Logged out successfully");
-      } else {
-        print("User is not logged in");
+      if (checkPassword) {
+        if (user.loggedIn == true) {
+          user.loggedIn = false;
+          await store.update(database, user.toMap(),
+              finder: Finder(filter: Filter.byKey(userRecord.key)));
+          print("Logged out successfully");
+        } else {
+          print("User is not logged in");
+        }
       }
     }
   }
