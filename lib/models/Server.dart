@@ -22,7 +22,13 @@ class Server {
     var memberNames = members.map((e) => e.username).toList();
     return memberNames.contains(username);
   }
-
+@override
+  String toString() {
+    return 'Server: $name';
+  }
+  static String serversToString(List<Server> servers) {
+    return servers.map((server) => server.toString()).join('\n');
+  }
   void addRole(Role role) {
     roles.add(role);
   }
@@ -129,12 +135,12 @@ Future<void> addMember(Server server, User member) async {
   if (serverRecord == null) {
     throw ServerNotFoundException();
   } else {
-    var updatedServer = Server.fromMap(serverRecord.value);
-    updatedServer.members.add(member);
+    // Modify the existing server instance instead of creating a new one
+    server.members.add(member);
 
     await store.update(
       database,
-      updatedServer.toMap(),
+      server.toMap(), // Use the modified server object to update the database
       finder: Finder(filter: Filter.byKey(serverRecord.key)),
     );
 
