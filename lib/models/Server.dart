@@ -7,31 +7,43 @@ import 'package:sembast/sembast.dart';
 import '../helpers/db_setup.dart';
 import 'role.dart';
 
-
 class Server {
   final String name;
   List<Role> roles;
   List<Channel> channels;
   List<User> members;
+  List<User> admins;
+  List<User> moderators;
 
-  Server(this.name, {List<Channel>? channels, List<User>? members, List<Role>? roles})
+  Server(this.name,
+      {List<Channel>? channels,
+      List<User>? members,
+      List<Role>? roles,
+      List<User>? admins,
+      List<User>? moderators})
       : channels = channels ?? [],
         members = members ?? [],
-        roles = roles ?? [];
+        admins = admins ?? [],
+        roles = roles ?? [],
+        moderators = moderators ?? [];
   bool isMember(String username) {
     var memberNames = members.map((e) => e.username).toList();
     return memberNames.contains(username);
   }
-@override
+
+  @override
   String toString() {
     return 'Server: $name';
   }
+
   static String serversToString(List<Server> servers) {
     return servers.map((server) => server.toString()).join('\n');
   }
+
   void addRole(Role role) {
     roles.add(role);
   }
+
   void addUserToRole(Role role, User user) {
     role.usersWithRole.add(user);
   }
@@ -81,9 +93,9 @@ class Server {
 
   void showMessages() {
     for (Channel channel in channels) {
-      print("${channel.name} :");
+      print("Channel-${channel.name} :");
       for (Message message in channel.messages) {
-        print("${message.sender.username} : ${message.contents}");
+        print("User-${message.sender.username} : ${message.contents}");
       }
     }
   }
@@ -92,7 +104,9 @@ class Server {
     return {
       'name': name,
       'channels': channels.map((channel) => channel.toMap()).toList(),
+      'admins': admins.map((admin) => admin.toMap()).toList(),
       'members': members.map((member) => member.toMap()).toList(),
+      'moderators': moderators.map((moderator) => moderator.toMap()).toList(),
     };
   }
 
@@ -105,6 +119,12 @@ class Server {
       members: (map['members'] as List<dynamic>)
           .map((member) => User.fromMap(member))
           .toList(),
+      admins: (map['admins'] as List<dynamic>)
+          .map((admin) => User.fromMap(admin))
+          .toList(),
+      moderators: (map['moderators'] as List<dynamic>)
+      .map((moderator) => User.fromMap(moderator))
+      .toList(),
     );
   }
 
@@ -115,41 +135,45 @@ class Server {
   StoreRef<int, Map<String, dynamic>> getStoreRef() {
     return intMapStoreFactory.store('servers');
   }
-  Role getRole(String roleName){ 
-    return roles.firstWhere((role) => role.name == roleName, orElse: () => throw Exception("Role was not found"));
+
+  Role getRole(String roleName) {
+    return roles.firstWhere((role) => role.name == roleName,
+        orElse: () => throw Exception("Role was not found"));
   }
+
   User getMember(String userName) {
-    return members.firstWhere((member) => member.username == userName, orElse: () => throw UserNotFoundException("User was not found on the server"));
+    return members.firstWhere((member) => member.username == userName,
+        orElse: () =>
+            throw UserNotFoundException("User was not found on the server"));
   }
 }
 
-Future<void> addMember(Server server, User member) async {
-  var database = await server.getDatabase1();
-  var store = server.getStoreRef();
+// Future<void> addMember(Server server, User member) async {
+//   var database = await server.getDatabase1();
+//   var store = server.getStoreRef();
 
-  var serverRecord = await store.findFirst(
-    database,
-    finder: Finder(filter: Filter.equals('name', server.name)),
-  );
+//   var serverRecord = await store.findFirst(
+//     database,
+//     finder: Finder(filter: Filter.equals('name', server.name)),
+//   );
 
-  if (serverRecord == null) {
-    throw ServerNotFoundException();
-  } else {
-    // Modify the existing server instance instead of creating a new one
-    server.members.add(member);
+//   if (serverRecord == null) {
+//     throw ServerNotFoundException();
+//   } else {
+//     // Modify the existing server instance instead of creating a new one
+//     server.members.add(member);
 
-    await store.update(
-      database,
-      server.toMap(), // Use the modified server object to update the database
-      finder: Finder(filter: Filter.byKey(serverRecord.key)),
-    );
+//     await store.update(
+//       database,
+//       server.toMap(), // Use the modified server object to update the database
+//       finder: Finder(filter: Filter.byKey(serverRecord.key)),
+//     );
 
-    print("Member added successfully");
-  }
-}
+//     print("Member added successfully");
+//   }
+// }
 
 bool isMember(Server server, String username) {
   var memberNames = server.members.map((e) => e.username).toList();
   return memberNames.contains(username);
 }
-

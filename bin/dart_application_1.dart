@@ -1,5 +1,6 @@
 import 'package:args/args.dart';
 import 'package:dart_application_1/dart_application_1.dart';
+import 'package:dart_application_1/models/channel.dart';
 import 'package:dart_application_1/models/UserExistsException.dart';
 import 'package:dart_application_1/models/UserNotFoundException.dart';
 import 'package:dart_application_1/models/ServerNotFoundException.dart';
@@ -23,8 +24,8 @@ void main(List<String> arguments) async {
   final command = results.command?.name;
 
   final actualInterface = DiscordAPI();
-
-  // Use the server instance as needed
+    var server = await actualInterface.getServer("hello2");
+          server.showMessages();
   try {
     switch (command) {
       case 'register':
@@ -56,19 +57,26 @@ void main(List<String> arguments) async {
         }
         break;
       case 'create-server':
-        final serverName = results.command?.rest.first;
-        if (serverName != null) {
-          actualInterface.createServer(serverName);
+        final serverName = results.command?.rest[0];
+        final user = results.command?.rest[1];
+
+        if (serverName != null && user != null) {
+          actualInterface.createServer(serverName, user);
         } else {
           print('Server name not provided');
         }
         break;
       case 'add-channel':
         final channelName = results.command?.rest[0];
-        final category = results.command?.rest[1];
+        final channelType = results.command?.rest[1];
         final serverName = results.command?.rest[2];
-        if (channelName != null && category != null && serverName != null) {
-          actualInterface.addChannelToServer(channelName, category, serverName);
+        final username = results.command?.rest[3];
+        if (channelName != null &&
+            channelType != null &&
+            serverName != null &&
+            username != null) {
+          actualInterface.addChannelToServer(
+              channelName, channelType, serverName, username);
         } else {
           print('Incomplete parameters for adding channel');
         }
@@ -101,7 +109,7 @@ void main(List<String> arguments) async {
       case 'show-message':
         final serverName = results.command?.rest.first;
         if (serverName != null) {
-          var server = actualInterface.getServer(serverName);
+           var server = await actualInterface.getServer(serverName);
           server.showMessages();
         } else {
           print('Server name not provided');
