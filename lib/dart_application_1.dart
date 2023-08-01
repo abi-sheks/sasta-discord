@@ -1,7 +1,7 @@
-import 'package:dart_application_1/models/channel.dart';
+import 'package:dart_application_1/models/Channel.dart';
 import 'package:dart_application_1/models/user.dart';
 import "package:dart_application_1/models/role.dart";
-import 'package:dart_application_1/models/server.dart';
+import 'package:dart_application_1/models/Server.dart';
 import "package:dart_application_1/models/message.dart";
 import 'package:sembast/sembast.dart';
 import 'package:dart_application_1/helpers/db_setup.dart';

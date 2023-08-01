@@ -1,6 +1,6 @@
 import 'package:dart_application_1/models/ServerNotFoundException.dart';
 import 'UserNotFoundException.dart';
-import 'channel.dart';
+import 'Channel.dart';
 import 'package:dart_application_1/models/user.dart';
 import 'message.dart';
 import 'package:sembast/sembast.dart';
