@@ -59,26 +59,14 @@ class Channel {
     var database = await getDatabase1();
     var channelStore = getStoreRef1();
     print(intMapStoreFactory.store('channels'));
-   var channelRecords = await channelStore.find(database, finder: Finder());
+    var channelRecords = await channelStore.find(database, finder: Finder());
 
-  print('Printing channelRecords:');
-  for (var record in channelRecords) {
-    print(record.value);
-  }
+    print('Printing channelRecords:');
+    for (var record in channelRecords) {
+      print(record.value);
+    }
 
-    // if (channelRecord == null) {
-    //   throw Exception("Channel does not exist in the database");
-    // }
-
-    // var updatedChannel = Channel.fromMap(channelRecord.value);
-    // Add your message creation logic here...
-    // For example, you can add the message to the channel's messages list:
     messages.add(message);
-    // await channelStore.update(
-    //   database,
-    //   updatedChannel.toMap(),
-    //   finder: Finder(filter: Filter.byKey(channelRecord.key)),
-    // );
 
     print("Message created successfully");
   }

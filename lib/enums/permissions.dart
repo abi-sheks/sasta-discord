@@ -1,1 +1,0 @@
-enum Perm {member, moderator}

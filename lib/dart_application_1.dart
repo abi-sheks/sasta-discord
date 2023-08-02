@@ -1,6 +1,5 @@
 import 'package:dart_application_1/models/channel.dart';
 import 'package:dart_application_1/models/user.dart';
-import "package:dart_application_1/models/role.dart";
 import 'package:dart_application_1/models/server.dart';
 import "package:dart_application_1/models/message.dart";
 import 'package:sembast/sembast.dart';
@@ -8,7 +7,6 @@ import 'package:dart_application_1/helpers/db_setup.dart';
 import "package:dart_application_1/models/ServerNotFoundException.dart";
 import "package:dart_application_1/models/UserNotFoundException.dart";
 import "package:dart_application_1/models/UserExistsException.dart";
-import "package:dart_application_1/enums/permissions.dart";
 import 'package:bcrypt/bcrypt.dart';
 
 class DiscordAPI {
@@ -186,10 +184,7 @@ class DiscordAPI {
       server.admins.add(requiredUser);
 
       await store.add(database, server.toMap());
-      print("huhu");
 
-      print(server);
-      print(allServers);
       print("Server created successfully");
     }
     return server;
@@ -201,33 +196,28 @@ class DiscordAPI {
 
     var serverRecords = await serverStore.find(database);
 
-    print("Server records from the database: $serverRecords");
-
     // Clear the existing allServers list before adding the retrieved servers
     allServers.clear();
 
     allServers.addAll(
         serverRecords.map((record) => Server.fromMap(record.value)).toList());
-
-    print("Loaded servers: $allServers");
   }
 
-Future<Server> getServer(String name) async {
-  var database = await setupDatabase1();
-  var serverStore = intMapStoreFactory.store('servers');
-  var serverRecord = await serverStore.findFirst(
-    database,
-    finder: Finder(filter: Filter.equals('name', name)),
-  );
+  Future<Server> getServer(String name) async {
+    var database = await setupDatabase1();
+    var serverStore = intMapStoreFactory.store('servers');
+    var serverRecord = await serverStore.findFirst(
+      database,
+      finder: Finder(filter: Filter.equals('name', name)),
+    );
 
-  if (serverRecord != null) {
-    var requiredServer = Server.fromMap(serverRecord.value);
-    return requiredServer;
-  } else {
-    throw Exception("Server not found");
+    if (serverRecord != null) {
+      var requiredServer = Server.fromMap(serverRecord.value);
+      return requiredServer;
+    } else {
+      throw Exception("Server not found");
+    }
   }
-}
-
 
   Future<void> addChannelToServer(
     String channelName,
@@ -293,42 +283,6 @@ Future<Server> getServer(String name) async {
     }
   }
 
-// Future<void> updateDatabase(Database database, String serverName, String listName, List<User> listData) async {
-//   var serverStore = intMapStoreFactory.store('servers');
-
-//   // Find the server record in the database
-//   var serverRecord = await serverStore.findFirst(
-//     database,
-//     finder: Finder(filter: Filter.equals('name', serverName)),
-//   );
-
-//   if (serverRecord == null) {
-//     throw Exception('Server not found in the database');
-//   } else {
-//     var requiredServer = Server.fromMap(serverRecord.value);
-
-//     // Update the specific list with the new list data
-//     switch (listName) {
-//       case 'members':
-//         requiredServer.members = listData;
-//         break;
-//       case 'admins':
-//         requiredServer.admins = listData;
-//         break;
-//       default:
-//         throw Exception('Invalid list name');
-//     }
-
-//     // Update the server record in the database
-//     await serverStore.update(
-//       database,
-//       requiredServer.toMap(),
-//       finder: Finder(filter: Filter.equals('name', serverName)),
-//     );
-
-//     print('Database updated successfully');
-//   }
-// }
   Future<void> sendMessage(String senderName, String serverName,
       String channelName, String message) async {
     var database = await setupDatabase1();
@@ -379,8 +333,6 @@ Future<Server> getServer(String name) async {
         orElse: () => throw Exception("Channel does not exist on this server"),
       );
 
-      print(requiredChannel.name);
-      print(requiredChannel.channelType);
       if (requiredChannel.channelType == ChannelType.general) {
         if (userIsMember(updatedServer, requiredSender) ||
             userIsAdminOrModerator(updatedServer, requiredSender)) {
@@ -501,9 +453,7 @@ Future<Server> getServer(String name) async {
       throw UserNotFoundException(username);
     } else {
       var user = User.fromMap(userRecord.value);
-      // print("ashish...");
-      // print(user);
-      // print("angel...");
+
       if (!user.loggedIn) {
         print("User not logged in");
       } else {
@@ -517,15 +467,8 @@ Future<Server> getServer(String name) async {
         if (serverRecord == null) {
           throw ServerNotFoundException();
         } else {
-          // print("server hahahaha record");
-          // print(serverRecord);
-          // print("00lalalla");
-          print(serverRecord.value);
           var requiredServer = Server.fromMap(serverRecord.value);
-          // print("imsmsms");
           requiredServer.members.add(requiredUser);
-          //requiredServer.admins.add(requiredUser);
-          print(requiredServer.admins);
 
           await serverStore.update(
             database,
@@ -551,60 +494,4 @@ Future<Server> getServer(String name) async {
   //     }
   //   }
   // }
-  Future<void> createRole(
-      String serverName, String? roleName, String? rolePerm) async {
-    var database = await setupDatabase1();
-    var store = intMapStoreFactory.store('servers');
-
-    var serverRecord = await store.findFirst(
-      database,
-      finder: Finder(filter: Filter.equals('name', serverName)),
-    );
-
-    if (serverRecord == null) {
-      throw ServerNotFoundException();
-    } else {
-      var server = Server.fromMap(serverRecord.value);
-      if (roleName == null) {
-        throw Exception("Please provide a name for the role");
-      }
-      if (rolePerm == null) {
-        server.addRole(Role(roleName, Perm.member));
-        await store.update(database, server.toMap(),
-            finder: Finder(filter: Filter.byKey(serverRecord.key)));
-        return;
-      }
-      if (rolePerm == "moderator") {
-        server.addRole(Role(roleName, Perm.moderator));
-        await store.update(database, server.toMap(),
-            finder: Finder(filter: Filter.byKey(serverRecord.key)));
-        return;
-      }
-      server.addRole(Role(roleName, Perm.member));
-      await store.update(database, server.toMap(),
-          finder: Finder(filter: Filter.byKey(serverRecord.key)));
-    }
-  }
-
-  Future<void> assignRole(
-      String serverName, String roleName, String username) async {
-    var database = await setupDatabase1();
-    var store = intMapStoreFactory.store('servers');
-
-    var serverRecord = await store.findFirst(
-      database,
-      finder: Finder(filter: Filter.equals('name', serverName)),
-    );
-
-    if (serverRecord == null) {
-      throw ServerNotFoundException();
-    } else {
-      var server = Server.fromMap(serverRecord.value);
-      var reqRole = server.getRole(roleName);
-      var reqUser = server.getMember(username);
-      server.addUserToRole(reqRole, reqUser);
-      await store.update(database, server.toMap(),
-          finder: Finder(filter: Filter.byKey(serverRecord.key)));
-    }
-  }
 }

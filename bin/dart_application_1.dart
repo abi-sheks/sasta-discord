@@ -19,13 +19,12 @@ void main(List<String> arguments) async {
   parser.addCommand('show-message');
   parser.addCommand('show-dm');
   parser.addCommand('dm-message');
-
+  parser.addCommand('add-member');
   final results = parser.parse(arguments);
   final command = results.command?.name;
 
   final actualInterface = DiscordAPI();
-    var server = await actualInterface.getServer("hello2");
-          server.showMessages();
+
   try {
     switch (command) {
       case 'register':
@@ -109,7 +108,7 @@ void main(List<String> arguments) async {
       case 'show-message':
         final serverName = results.command?.rest.first;
         if (serverName != null) {
-           var server = await actualInterface.getServer(serverName);
+          var server = await actualInterface.getServer(serverName);
           server.showMessages();
         } else {
           print('Server name not provided');
@@ -130,6 +129,18 @@ void main(List<String> arguments) async {
           actualInterface.printUserMessages(sender, recipient);
         }
         break;
+      case 'add-member':
+        final requester = results.command?.rest[0];
+        final server = results.command?.rest[1];
+        final member = results.command?.rest[2];
+        final role = results.command?.rest[3];
+        if (requester != null &&
+            server != null &&
+            member != null &&
+            role != null) {
+          actualInterface.addMemberToServer(requester, server, member, role);
+        }
+
       default:
         print('Invalid command! Please try again.');
         break;

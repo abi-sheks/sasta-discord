@@ -5,11 +5,9 @@ import 'package:dart_application_1/models/user.dart';
 import 'message.dart';
 import 'package:sembast/sembast.dart';
 import '../helpers/db_setup.dart';
-import 'role.dart';
 
 class Server {
   final String name;
-  List<Role> roles;
   List<Channel> channels;
   List<User> members;
   List<User> admins;
@@ -18,13 +16,11 @@ class Server {
   Server(this.name,
       {List<Channel>? channels,
       List<User>? members,
-      List<Role>? roles,
       List<User>? admins,
       List<User>? moderators})
       : channels = channels ?? [],
         members = members ?? [],
         admins = admins ?? [],
-        roles = roles ?? [],
         moderators = moderators ?? [];
   bool isMember(String username) {
     var memberNames = members.map((e) => e.username).toList();
@@ -38,14 +34,6 @@ class Server {
 
   static String serversToString(List<Server> servers) {
     return servers.map((server) => server.toString()).join('\n');
-  }
-
-  void addRole(Role role) {
-    roles.add(role);
-  }
-
-  void addUserToRole(Role role, User user) {
-    role.usersWithRole.add(user);
   }
 
   void createChannel(Channel channel) {
@@ -123,8 +111,8 @@ class Server {
           .map((admin) => User.fromMap(admin))
           .toList(),
       moderators: (map['moderators'] as List<dynamic>)
-      .map((moderator) => User.fromMap(moderator))
-      .toList(),
+          .map((moderator) => User.fromMap(moderator))
+          .toList(),
     );
   }
 
@@ -134,11 +122,6 @@ class Server {
 
   StoreRef<int, Map<String, dynamic>> getStoreRef() {
     return intMapStoreFactory.store('servers');
-  }
-
-  Role getRole(String roleName) {
-    return roles.firstWhere((role) => role.name == roleName,
-        orElse: () => throw Exception("Role was not found"));
   }
 
   User getMember(String userName) {
