@@ -24,6 +24,7 @@ void main(List<String> arguments) async {
   final command = results.command?.name;
 
   final actualInterface = DiscordAPI();
+  DiscordAPI().registerUser("jello", "jello");
 
   try {
     switch (command) {

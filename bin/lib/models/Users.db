@@ -1,3 +1,4 @@
 {"version":1,"sembast":1}
 {"key":1,"store":"users","value":{"username":"angel","loggedIn":false}}
 {"key":1,"store":"users","value":{"username":"angel","loggedIn":true}}
+{"key":2,"store":"users","value":{"username":"du","loggedIn":false,"password":"$2a$10$PahdoaTlazK/eEXC9TOpPu03YwqZAmEdwYWJNvD0Ap4FVvExHV7zO"}}
